@@ -277,7 +277,7 @@ const featureCardMotif: React.CSSProperties = {
   border:
     "1px solid color-mix(in srgb, var(--pf-color-brand-500) 14%, var(--pf-surface-card-border))",
   background:
-    "linear-gradient(180deg, color-mix(in srgb, var(--pf-color-brand-500) 7%, transparent), color-mix(in srgb, var(--pf-color-bg-subtle) 72%, transparent))",
+    "color-mix(in srgb, var(--pf-color-bg-subtle) 72%, transparent)",
   minHeight: 216,
   overflow: "hidden",
   display: "flex",
@@ -374,7 +374,7 @@ function FeatureMotif({
               borderRadius: "50%",
               border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,
               background:
-                "radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--pf-color-brand-500) 20%, transparent), transparent 62%)",
+                "color-mix(in srgb, var(--pf-color-brand-500) 14%, transparent)",
               display: "grid",
               placeItems: "center",
               boxShadow: "var(--pf-shadow-sm)",
@@ -479,7 +479,7 @@ function FeatureMotif({
             borderRadius: "50%",
             border: `1px solid color-mix(in srgb, ${accent} 24%, transparent)`,
             background:
-              "radial-gradient(circle, color-mix(in srgb, var(--pf-color-brand-500) 16%, transparent), transparent 68%)",
+              "color-mix(in srgb, var(--pf-color-brand-500) 10%, transparent)",
             display: "grid",
             placeItems: "center",
           }}
@@ -500,7 +500,7 @@ function FeatureMotif({
           borderRadius: 22,
           border: `1px solid color-mix(in srgb, ${accent} 18%, transparent)`,
           background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--pf-color-brand-500) 10%, transparent), transparent 55%)",
+            "color-mix(in srgb, var(--pf-color-brand-500) 8%, transparent)",
         }}
       />
       <div
@@ -561,7 +561,7 @@ function FeatureMotif({
           borderRadius: "50%",
           border: `1px solid color-mix(in srgb, ${accent} 26%, transparent)`,
           background:
-            "radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--pf-color-brand-500) 20%, transparent), transparent 62%)",
+            "color-mix(in srgb, var(--pf-color-brand-500) 14%, transparent)",
           display: "grid",
           placeItems: "center",
         }}
@@ -816,7 +816,7 @@ function OrganizingVisualization({ reduceMotion }: { reduceMotion: boolean }) {
                 width: radius,
                 height: 1,
                 background:
-                  "linear-gradient(90deg, var(--pf-home-hero-dimension-line-start), var(--pf-home-hero-dimension-line-end))",
+                  "var(--pf-home-hero-dimension-line-start)",
                 transformOrigin: "0% 50%",
                 transform: `translateY(-50%) rotate(${angleDeg}deg)`,
               }}
@@ -949,7 +949,7 @@ function ClarityVisualization({ reduceMotion }: { reduceMotion: boolean }) {
             style={{
               position: "absolute",
               inset: 0,
-              background: `linear-gradient(140deg, ${career.color}22, transparent 65%)`,
+              background: `${career.color}22`,
               opacity: 0.64,
             }}
             animate={reduceMotion ? undefined : { opacity: [0.4, 0.72, 0.46] }}
@@ -1386,7 +1386,7 @@ export default function Home() {
                 top: "-18vmax",
                 borderRadius: "50%",
                 background:
-                  "radial-gradient(circle, rgba(99, 102, 241, 0.32), rgba(99, 102, 241, 0) 66%)",
+                  "rgba(99, 102, 241, 0.2)",
                 filter: "blur(22px)",
               }}
               animate={
@@ -1410,7 +1410,7 @@ export default function Home() {
                 bottom: "-16vmax",
                 borderRadius: "50%",
                 background:
-                  "radial-gradient(circle, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0) 68%)",
+                  "rgba(34, 197, 94, 0.12)",
                 filter: "blur(24px)",
               }}
               animate={
@@ -1430,11 +1430,7 @@ export default function Home() {
                 position: "absolute",
                 inset: 0,
                 opacity: 0.22,
-                backgroundImage:
-                  "linear-gradient(rgba(99, 102, 241, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.14) 1px, transparent 1px)",
-                backgroundSize: "48px 48px",
-                maskImage:
-                  "radial-gradient(circle at center, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0))",
+                background: "rgba(99, 102, 241, 0.1)",
               }}
               animate={
                 reduceMotion
@@ -1523,7 +1519,7 @@ export default function Home() {
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background: "linear-gradient(90deg, #6d74ff, #4ccfff)",
+                  background: "#6d74ff",
                   opacity: loading ? 0 : 0.72,
                   zIndex: 0,
                 }}

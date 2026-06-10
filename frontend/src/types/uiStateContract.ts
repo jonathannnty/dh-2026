@@ -199,7 +199,7 @@ export const TRACK_THEME_TOKENS: Record<TrackId, TrackThemeTokens> = {
     surfaceSoft: "rgba(100, 116, 139, 0.12)",
     borderTint: "rgba(100, 116, 139, 0.22)",
     onAccent: "#FFFFFF",
-    heroGradient: "linear-gradient(135deg, #475569 0%, #64748B 100%)",
+    heroGradient: "#64748B",
   },
   "tech-career": {
     trackId: "tech-career",
@@ -208,7 +208,7 @@ export const TRACK_THEME_TOKENS: Record<TrackId, TrackThemeTokens> = {
     surfaceSoft: "rgba(6, 182, 212, 0.12)",
     borderTint: "rgba(6, 182, 212, 0.22)",
     onAccent: "#FFFFFF",
-    heroGradient: "linear-gradient(135deg, #0F766E 0%, #06B6D4 100%)",
+    heroGradient: "#06B6D4",
   },
   "healthcare-pivot": {
     trackId: "healthcare-pivot",
@@ -217,7 +217,7 @@ export const TRACK_THEME_TOKENS: Record<TrackId, TrackThemeTokens> = {
     surfaceSoft: "rgba(16, 185, 129, 0.12)",
     borderTint: "rgba(16, 185, 129, 0.22)",
     onAccent: "#FFFFFF",
-    heroGradient: "linear-gradient(135deg, #065F46 0%, #10B981 100%)",
+    heroGradient: "#10B981",
   },
   "creative-industry": {
     trackId: "creative-industry",
@@ -226,7 +226,7 @@ export const TRACK_THEME_TOKENS: Record<TrackId, TrackThemeTokens> = {
     surfaceSoft: "rgba(245, 158, 11, 0.12)",
     borderTint: "rgba(245, 158, 11, 0.22)",
     onAccent: "#111827",
-    heroGradient: "linear-gradient(135deg, #B45309 0%, #F59E0B 100%)",
+    heroGradient: "#F59E0B",
   },
 };
 
