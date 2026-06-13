@@ -1424,7 +1424,7 @@ export default function Home() {
                   : { duration: 13, repeat: Infinity, ease: "easeInOut" }
               }
             />
-            <motion.span
+            <span
               aria-hidden="true"
               style={{
                 position: "absolute",
@@ -1432,16 +1432,6 @@ export default function Home() {
                 opacity: 0.22,
                 background: "rgba(99, 102, 241, 0.1)",
               }}
-              animate={
-                reduceMotion
-                  ? undefined
-                  : { backgroundPosition: ["0px 0px", "48px 48px"] }
-              }
-              transition={
-                reduceMotion
-                  ? undefined
-                  : { duration: 24, repeat: Infinity, ease: "linear" }
-              }
             />
 
             <AnimatePresence mode="wait" initial={false}>

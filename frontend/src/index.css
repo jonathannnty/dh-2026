@@ -255,8 +255,7 @@ textarea {
   --pf-home-hero-dimension-bg: rgba(33, 61, 116, 0.28);
   --pf-home-hero-dimension-border: rgba(109, 147, 225, 0.45);
   --pf-home-hero-dimension-text: #b7ceff;
-  --pf-home-hero-dimension-line-start: rgba(129, 140, 248, 0.46);
-  --pf-home-hero-dimension-line-end: rgba(129, 140, 248, 0);
+  --pf-home-hero-dimension-line-start: rgba(129, 140, 248, 0.23);
   --pf-home-hero-card-bg: rgba(24, 30, 42, 0.76);
   --pf-home-hero-card-border: rgba(99, 109, 138, 0.58);
   --pf-home-hero-card-title: #eef3ff;
@@ -335,8 +334,7 @@ html[data-theme="light"] .home-hero-panel {
   --pf-home-hero-dimension-bg: rgba(255, 255, 255, 0.9);
   --pf-home-hero-dimension-border: rgba(79, 70, 229, 0.18);
   --pf-home-hero-dimension-text: #5b6b7f;
-  --pf-home-hero-dimension-line-start: rgba(79, 70, 229, 0.26);
-  --pf-home-hero-dimension-line-end: rgba(79, 70, 229, 0);
+  --pf-home-hero-dimension-line-start: rgba(79, 70, 229, 0.13);
   --pf-home-hero-card-bg: rgba(239, 243, 255, 0.98);
   --pf-home-hero-card-border: rgba(99, 102, 241, 0.12);
   --pf-home-hero-card-title: #0f172a;
@@ -571,7 +569,6 @@ html[data-theme="light"] .home-hero-panel .home-hero-scroll-hint {
   pointer-events: none;
   background: rgba(129, 140, 248, 0.04);
   opacity: var(--pf-ambient-lines-opacity);
-  animation: ambientLinesDrift var(--pf-ambient-lines-duration) linear infinite;
 }
 
 .ambient-grain {
@@ -660,9 +657,7 @@ html[data-theme="light"] .ambient-grain {
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.02);
-  background-size: 56px 56px;
   opacity: var(--pf-ambient-grid-opacity);
-  animation: ambientGridDrift var(--pf-ambient-grid-duration) linear infinite;
 }
 
 html[data-theme="light"] .ambient-grid {
@@ -696,15 +691,6 @@ html[data-theme="light"] .ambient-grid {
   }
 }
 
-@keyframes ambientGridDrift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-28px, -16px, 0);
-  }
-}
-
 @keyframes ambientBeamRotateA {
   0% {
     transform: rotate(0deg) scale(1);
@@ -726,15 +712,6 @@ html[data-theme="light"] .ambient-grid {
   }
   100% {
     transform: rotate(360deg) scale(1);
-  }
-}
-
-@keyframes ambientLinesDrift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(42px, -34px, 0);
   }
 }
 
@@ -792,7 +769,6 @@ html[data-theme="light"] .ambient-grid {
 
   .ambient-grid {
     opacity: 0.26;
-    background-size: 44px 44px;
   }
 
   .ambient-cursor {
