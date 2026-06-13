@@ -188,7 +188,7 @@ Simple rollback reduces incident response time to <2 minutes.
 
 - `.env` files should **never** be committed to version control
 - Use platform-specific secrets managers (GitHub Secrets, Vercel Secret Store, etc.)
-- API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, FETCHAI_API_KEY) are **server-side only** and never exposed to frontend
+- API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY) are **server-side only** and never exposed to frontend
 - CORS is configured automatically and respects `Origin` headers
 
 ## Performance Benchmarks
