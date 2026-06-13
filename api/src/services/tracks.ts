@@ -47,6 +47,15 @@ export const TRACK_REGISTRY: SponsorTrack[] = [
     color: '#f59e0b',
     tags: ['creative', 'design', 'media'],
   },
+  {
+    id: 'misc',
+    name: 'Miscellaneous',
+    sponsor: 'PathFinder AI',
+    description: "Not sure where you fit? Explore careers across all fields.",
+    icon: 'sparkles',
+    color: '#8b5cf6',
+    tags: ['open-ended', 'exploratory', 'multi-field'],
+  },
 ];
 
 /** Lookup a track by ID. Returns undefined if not found. */
