@@ -6,7 +6,7 @@ const startedAt = Date.now();
 
 export async function healthRoutes(app: FastifyInstance): Promise<void> {
   app.get('/health', async (_req, reply) => {
-    const dbOk = dbHealthCheck();
+    const dbOk = await dbHealthCheck();
     const agentReachable = await isAgentReachable();
     const agentOk = await isAgentversePipelineReady();
     const agentMode = await getAgentServiceMode();

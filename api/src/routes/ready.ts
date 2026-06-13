@@ -26,12 +26,12 @@ export async function readyRoutes(app: FastifyInstance): Promise<void> {
 
     // ── 1. Database ──
     const dbStart = Date.now();
-    const dbOk = dbHealthCheck();
+    const dbOk = await dbHealthCheck();
     checks.push({
       name: 'db_connection',
       pass: dbOk,
       ms: Date.now() - dbStart,
-      detail: dbOk ? 'SQLite responds to SELECT 1' : 'Database unreachable',
+      detail: dbOk ? 'PostgreSQL responds to SELECT 1' : 'Database unreachable',
     });
 
     if (!dbOk) {

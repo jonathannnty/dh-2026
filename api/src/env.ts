@@ -2,9 +2,8 @@ import { z } from 'zod';
 
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-  DATABASE_URL: z.string().min(1).default('./dev.db'),
+  DATABASE_URL: z.string().min(1),
 
-  // Python agent service (Fetch.ai Agentverse agent or local stub)
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:8000'),
 
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -13,19 +12,15 @@ const EnvSchema = z.object({
     .default('')
     .transform((v) => v === 'true' || v === '1'),
 
-  // ── Fetch.ai / Agentverse ──────────────────────────────────────
-  // Set these once you have Agentverse credentials.
-  // FETCHAI_API_KEY: Agentverse API key (create at agentverse.ai)
-  // FETCHAI_AGENT_ADDRESS: The bech32 address of your hosted agent (agent1q...)
-  FETCHAI_API_KEY: z.string().optional(),
-  FETCHAI_AGENT_ADDRESS: z.string().optional(),
+  // OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  JWT_SECRET: z.string().min(32).optional(),
 
-  // ── Browser Use (LLM-driven browser automation) ───────────────
-  // Browser Use runs inside the Python agent and needs an LLM key.
-  // ANTHROPIC_API_KEY is preferred (Claude drives the browser).
-  // OPENAI_API_KEY is accepted as an alternative.
-  ANTHROPIC_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
+  // Post-OAuth redirect base URL (e.g. https://pathfinder.vercel.app)
+  APP_URL: z.string().url().default('http://localhost:5173'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
