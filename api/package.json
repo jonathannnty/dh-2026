@@ -19,9 +19,11 @@
     "@fastify/sensible": "^6.0.0",
     "@neondatabase/serverless": "^1.1.0",
     "@types/ws": "^8.18.1",
+    "axios": "^1.17.0",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
     "fastify-plugin": "^5.1.0",
+    "jose": "^6.2.3",
     "pdfkit": "^0.18.0",
     "ws": "^8.21.0",
     "zod": "^3.24.0"
