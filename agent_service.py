@@ -36,6 +36,7 @@ _sessions: dict[str, dict] = {}
 client = AsyncOpenAI(
     api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
     base_url="https://api.deepseek.com",
+    timeout=20.0,
 )
 
 SYSTEM_PROMPT = """You are a career guidance expert. Given a user's CareerProfile JSON, generate exactly 5 career recommendations.
@@ -90,10 +91,22 @@ async def _run_analysis(session_id: str, profile: dict, track_id: Optional[str])
         )
 
         raw = response.choices[0].message.content or "[]"
+        # Strip markdown code fences if model wraps in ```json
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = "\n".join(raw.split("\n")[1:])
+            raw = raw.rsplit("```", 1)[0].strip()
         recommendations = json.loads(raw)
 
         if not isinstance(recommendations, list):
             raise ValueError("DeepSeek response was not a JSON array")
+
+        # Validate each recommendation has required fields
+        required = {"title", "summary", "fitScore", "reasons", "concerns", "nextSteps", "salaryRange"}
+        for i, rec in enumerate(recommendations):
+            missing = required - set(rec.keys())
+            if missing:
+                raise ValueError(f"Recommendation {i} missing fields: {missing}")
 
         _sessions[session_id] = {
             "status": "completed",
@@ -117,6 +130,9 @@ async def _run_analysis(session_id: str, profile: dict, track_id: Optional[str])
 async def start_analysis(request: AnalysisRequest) -> dict:
     if not client.api_key:
         raise HTTPException(status_code=500, detail="DEEPSEEK_API_KEY not set")
+    existing = _sessions.get(request.sessionId)
+    if existing and existing.get("status") == "in_progress":
+        return {"ok": True, "sessionId": request.sessionId}
     asyncio.create_task(_run_analysis(request.sessionId, request.profile, request.trackId))
     return {"ok": True, "sessionId": request.sessionId}
 
