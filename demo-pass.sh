@@ -25,7 +25,11 @@ npm ci >/dev/null 2>&1 || npm install >/dev/null 2>&1
 # Step 3: Start API in background
 echo "✓ Starting API server..."
 export DEMO_MODE=true
-export DATABASE_URL=":memory:"
+# DATABASE_URL must be set in api/.env or in the environment
+# The API requires a real Neon PostgreSQL connection string — :memory: is no longer supported
+if [ -z "$DATABASE_URL" ] && [ -f "api/.env" ]; then
+  export DATABASE_URL=$(grep '^DATABASE_URL=' api/.env | cut -d= -f2-)
+fi
 npm run dev --workspace api &
 API_PID=$!
 trap "kill $API_PID 2>/dev/null || true" EXIT
