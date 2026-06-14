@@ -9,10 +9,8 @@ jobs:
   api:
     runs-on: ubuntu-latest
     env:
-      # Point this secret at a DEDICATED, disposable Neon branch. The API suite
-      # is destructive (the ops/db-admin tests wipe the sessions table), so it
-      # must never target the dev or production branch. This env var takes
-      # precedence over api/.env and api/.env.test (see api/vitest.setup.ts).
+      # A DEDICATED, disposable Neon branch — the API suite wipes the sessions
+      # table, so never point this at dev/production. Overrides api/.env(.test).
       DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       NODE_ENV: test
     steps:
@@ -21,11 +19,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # `npm install`, not `npm ci`: the committed package-lock only carries the
-      # dev machine's native binaries (npm/cli#4828), so `npm ci` on a Linux
-      # runner won't install @rollup/* and @esbuild/* for this platform.
-      # `npm install` fetches the runner's own platform binaries.
-      - run: npm install --no-audit --no-fund
+      # The committed package-lock was generated on win32-arm64 and only carries
+      # that platform's native package entries (npm/cli#4828), so neither
+      # `npm ci` nor `npm install` will fetch @rollup/* and @esbuild/* for Linux.
+      # Regenerate the lockfile fresh on the runner — the fix npm itself
+      # recommends — so the correct platform binaries get resolved.
+      - run: rm -rf node_modules package-lock.json && npm install --no-audit --no-fund
       - run: npm run lint --workspace api
       - run: npm test --workspace api
 
@@ -37,6 +36,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install --no-audit --no-fund
+      - run: rm -rf node_modules package-lock.json && npm install --no-audit --no-fund
       - run: npm run lint --workspace frontend
       - run: npm test --workspace frontend
