@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc -p tsconfig.check.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
