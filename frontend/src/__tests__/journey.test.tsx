@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/msw-server";
@@ -18,16 +19,28 @@ import Results from "../routes/Results";
 
 /** Renders a component at a URL. Supports :sessionId params in /results/* and /onboarding. */
 function renderAt(path: string, element: React.ReactElement) {
+  // The app provides a QueryClient at its root (main.tsx); this helper renders
+  // route components in isolation, so it must supply one too. A fresh client
+  // per render keeps the query cache from leaking between tests, and
+  // retry:false makes error/404 states surface immediately (no backoff waits).
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        {/* Named-param routes so useParams works correctly */}
-        <Route path="/onboarding" element={element} />
-        <Route path="/results/:sessionId" element={element} />
-        <Route path="/results" element={element} />
-        <Route path="*" element={element} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          {/* Named-param routes so useParams works correctly */}
+          <Route path="/onboarding" element={element} />
+          <Route path="/results/:sessionId" element={element} />
+          <Route path="/results" element={element} />
+          <Route path="*" element={element} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
