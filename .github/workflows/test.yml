@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Point this secret at a DEDICATED Neon test branch. The API suite is
+      # destructive (the ops/db-admin tests wipe the sessions table), so it must
+      # never target the dev or production branch. This env var takes precedence
+      # over api/.env and api/.env.test (see api/vitest.setup.ts).
+      DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck + test (api)
+        run: |
+          npm run lint --workspace api
+          npm test --workspace api
+
+      - name: Lint + test (frontend)
+        run: |
+          npm run lint --workspace frontend
+          npm test --workspace frontend
