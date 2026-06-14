@@ -17,7 +17,13 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
-  JWT_SECRET: z.string().min(32).optional(),
+  // Empty string in .env (JWT_SECRET=) means "unset" — coerce to undefined so
+  // .optional() applies and the auth plugin's dev fallback kicks in. A short
+  // but non-empty value is still a real misconfiguration and stays rejected.
+  JWT_SECRET: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(32).optional(),
+  ),
 
   // Post-OAuth redirect base URL (e.g. https://pathfinder.vercel.app)
   APP_URL: z.string().url().default('http://localhost:5173'),
