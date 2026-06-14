@@ -19,12 +19,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # The committed package-lock was generated on win32-arm64 and only carries
-      # that platform's native package entries (npm/cli#4828), so neither
-      # `npm ci` nor `npm install` will fetch @rollup/* and @esbuild/* for Linux.
-      # Regenerate the lockfile fresh on the runner — the fix npm itself
-      # recommends — so the correct platform binaries get resolved.
-      - run: rm -rf node_modules package-lock.json && npm install --no-audit --no-fund
+      - run: npm ci
       - run: npm run lint --workspace api
       - run: npm test --workspace api
 
@@ -36,6 +31,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: rm -rf node_modules package-lock.json && npm install --no-audit --no-fund
+      - run: npm ci
       - run: npm run lint --workspace frontend
       - run: npm test --workspace frontend
