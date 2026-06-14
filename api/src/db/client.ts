@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import { sql } from 'drizzle-orm';
 import * as schema from './schema.js';
 import { loadEnv } from '../env.js';
 
@@ -25,7 +26,7 @@ export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
 export async function dbHealthCheck(): Promise<boolean> {
   try {
     const real = ensureInit();
-    await real.execute('SELECT 1');
+    await real.execute(sql`SELECT 1`);
     return true;
   } catch {
     return false;

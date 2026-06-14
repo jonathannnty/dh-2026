@@ -432,11 +432,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
 
   // ── GET /sessions/:id ───────────────────────────────────────────
   app.get<{ Params: { id: string } }>("/sessions/:id", async (req, reply) => {
-    const row = await db
+    const [row] = await db
       .select()
       .from(sessions)
       .where(eq(sessions.id, req.params.id))
-      .get();
+      .limit(1);
 
     if (!row) return reply.notFound("Session not found");
 
@@ -467,11 +467,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>(
     "/sessions/:id/report",
     async (req, reply) => {
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 
@@ -513,11 +513,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
         return reply.badRequest(parsed.error.issues[0].message);
       }
 
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 
@@ -582,11 +582,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>(
     "/sessions/:id/stream",
     async (req, reply) => {
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 
@@ -868,11 +868,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>(
     "/sessions/:id/analyze",
     async (req, reply) => {
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 
@@ -917,11 +917,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
       const BACKGROUND_ANALYSIS_GUARD_MS = 20_000;
       setTimeout(() => {
         void (async () => {
-          const current = await db
+          const [current] = await db
             .select()
             .from(sessions)
             .where(eq(sessions.id, req.params.id))
-            .get();
+            .limit(1);
 
           if (!current || current.status !== "analyzing") return;
 
@@ -979,11 +979,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>(
     "/sessions/:id/recommendations",
     async (req, reply) => {
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 

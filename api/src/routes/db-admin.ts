@@ -29,7 +29,7 @@ export async function dbAdminRoutes(app: FastifyInstance): Promise<void> {
 
   // ── POST /ops/db/snapshot — export all sessions as JSON ─────────
   app.post('/snapshot', async () => {
-    const rows = await db.select().from(sessions).all();
+    const rows = await db.select().from(sessions);
 
     const snapshot = rows.map((row) => ({
       id: row.id,
@@ -101,33 +101,30 @@ export async function dbAdminRoutes(app: FastifyInstance): Promise<void> {
 
   // ── GET /ops/db/stats — database metrics ────────────────────────
   app.get('/stats', async () => {
-    const total = await db
-      .select({ count: sql<number>`count(*)` })
+    const [total] = await db
+      .select({ count: sql<number>`count(*)::int` })
       .from(sessions)
-      .get();
+      .limit(1);
 
     const byStatus = await db
       .select({
         status: sessions.status,
-        count: sql<number>`count(*)`,
+        count: sql<number>`count(*)::int`,
       })
       .from(sessions)
-      .groupBy(sessions.status)
-      .all();
+      .groupBy(sessions.status);
 
-    const oldest = await db
+    const [oldest] = await db
       .select({ createdAt: sessions.createdAt })
       .from(sessions)
       .orderBy(sessions.createdAt)
-      .limit(1)
-      .get();
+      .limit(1);
 
-    const newest = await db
+    const [newest] = await db
       .select({ createdAt: sessions.createdAt })
       .from(sessions)
       .orderBy(sql`${sessions.createdAt} DESC`)
-      .limit(1)
-      .get();
+      .limit(1);
 
     return {
       totalSessions: total?.count ?? 0,
