@@ -1,11 +1,12 @@
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@/lib/queryClient";
 import Layout from "@/components/ui/Layout";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useAuth } from "@/hooks/useAuth";
 import "@/index.css";
 
 const Home = lazy(() => import("@/routes/Home"));
@@ -13,6 +14,14 @@ const Onboarding = lazy(() => import("@/routes/Onboarding"));
 const Dashboard = lazy(() => import("@/routes/Dashboard"));
 const Results = lazy(() => import("@/routes/Results"));
 const Compare = lazy(() => import("@/routes/Compare"));
+const Login = lazy(() => import("@/routes/Login"));
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 const routeFallbackStyle: React.CSSProperties = {
   flex: 1,
@@ -52,11 +61,21 @@ createRoot(document.getElementById("root")!).render(
                   }
                 />
                 <Route
+                  path="/login"
+                  element={
+                    <ErrorBoundary label="Login">
+                      <Login />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
                   path="/dashboard"
                   element={
-                    <ErrorBoundary label="Dashboard">
-                      <Dashboard />
-                    </ErrorBoundary>
+                    <RequireAuth>
+                      <ErrorBoundary label="Dashboard">
+                        <Dashboard />
+                      </ErrorBoundary>
+                    </RequireAuth>
                   }
                 />
                 <Route

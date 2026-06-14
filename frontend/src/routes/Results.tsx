@@ -5,6 +5,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getSession,
   getRecommendationsWithRetry,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/api";
 import { useSessionStream } from "@/hooks/useSessionStream";
 import { useTrack } from "@/hooks/useTrack";
+import { useAuth } from "@/hooks/useAuth";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -31,6 +33,8 @@ import {
 } from "@/types/uiStateContract";
 import { IconLabel } from "@/components/ui/IconLabel";
 import { UI_COPY } from "@/lib/copy";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 // ─── Styles ───────────────────────────────────────────────────────
 
@@ -221,6 +225,19 @@ export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [searchParams] = useSearchParams();
   const nav = useNavigate();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const saveCareer = async (title: string, fitScore: number) => {
+    if (!user || !sessionId) return;
+    await fetch(`${BASE_URL}/saved-careers`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, careerTitle: title, fitScore }),
+    });
+    qc.invalidateQueries({ queryKey: ['saved-careers'] });
+  };
 
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [recs, setRecs] = useState<CareerRecommendation[] | null>(null);
@@ -987,7 +1004,25 @@ export default function Results() {
                 {rec.title}
               </h2>
             </div>
-            <ScoreBadge score={rec.fitScore} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ScoreBadge score={rec.fitScore} />
+              {user && (
+                <button
+                  onClick={() => saveCareer(rec.title, rec.fitScore)}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--pf-surface-card-border)',
+                    borderRadius: 'var(--pf-radius-pill)',
+                    padding: '3px 10px',
+                    fontSize: '0.75rem',
+                    color: 'var(--pf-color-text-muted)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save
+                </button>
+              )}
+            </div>
           </div>
 
           <p

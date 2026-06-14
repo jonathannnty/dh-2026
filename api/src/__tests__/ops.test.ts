@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { DEMO_INPUTS } from '../services/demo.js';
 
 process.env.DEMO_MODE = 'true';
-process.env.DATABASE_URL = ':memory:';
+// Tests require a real Neon DATABASE_URL set in the environment or api/.env
 
 let app: FastifyInstance;
 

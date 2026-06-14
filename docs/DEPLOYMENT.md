@@ -68,18 +68,30 @@ Optional explicit Runtime command (if your Vercel project asks for it):
 ```
 PORT=3001
 NODE_ENV=production
-DATABASE_URL=/path/to/production.db (or remote DB URL)
 DEMO_MODE=false
+DATABASE_URL=postgresql://<user>:<pass>@<host>/<db>?sslmode=require
 ```
 
-Do not set frontend-only variables (`VITE_API_URL`, `VITE_AGENT_URL`) on the API project.
+`DATABASE_URL` must point to a Neon PostgreSQL project. Create one free at https://console.neon.tech.
+
+Do not set frontend-only variables (`VITE_API_URL`) on the API project.
+
+**Auth (required to enable login):**
+
+```
+JWT_SECRET=<32+ char random hex>
+GOOGLE_CLIENT_ID=<from Google Cloud Console>
+GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+GITHUB_CLIENT_ID=<from GitHub OAuth App>
+GITHUB_CLIENT_SECRET=<from GitHub OAuth App>
+APP_URL=https://your-frontend-domain.vercel.app
+```
 
 **Optional (falling back gracefully if not set):**
 
 ```
-AGENT_SERVICE_URL=http://localhost:8000
-ANTHROPIC_API_KEY=<api-key>
-OPENAI_API_KEY=<api-key>
+AGENT_SERVICE_URL=<url of running agent_service.py>
+DEEPSEEK_API_KEY=<from https://platform.deepseek.com>
 ```
 
 ### Build Command
@@ -132,8 +144,12 @@ If `AGENT_SERVICE_URL` points to an unreachable service or times out:
 
 - [ ] Frontend environment: `VITE_API_URL` points to public API URL
 - [ ] API environment: `NODE_ENV=production`, `DEMO_MODE=false`
-- [ ] API environment: `DATABASE_URL` points to persistent database
+- [ ] API environment: `DATABASE_URL` points to Neon PostgreSQL project
+- [ ] API environment: `JWT_SECRET` is set to a 32+ char random value
+- [ ] API environment: `APP_URL` matches the frontend production URL
+- [ ] API environment: OAuth credentials set (Google and/or GitHub)
 - [ ] API environment: `AGENT_SERVICE_URL` (optional; fallback activates if missing/unreachable)
+- [ ] Schema pushed to Neon: `npx drizzle-kit push` (run once from `api/` directory)
 - [ ] API health endpoint returns `{ status: "ok" }` or `{ status: "degraded" }`
 - [ ] `/ready` endpoint dry-runs the full golden path successfully
 - [ ] Demo pass command passes locally before pushing deployment
@@ -188,7 +204,7 @@ Simple rollback reduces incident response time to <2 minutes.
 
 - `.env` files should **never** be committed to version control
 - Use platform-specific secrets managers (GitHub Secrets, Vercel Secret Store, etc.)
-- API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, FETCHAI_API_KEY) are **server-side only** and never exposed to frontend
+- `DEEPSEEK_API_KEY` and `JWT_SECRET` are **server-side only** and never exposed to frontend
 - CORS is configured automatically and respects `Origin` headers
 
 ## Performance Benchmarks

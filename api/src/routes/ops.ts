@@ -47,7 +47,7 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
 
   // ── GET /ops/status — operator dashboard snapshot ───────────────
   app.get("/status", async () => {
-    const allSessions = await db.select().from(sessions).all();
+    const allSessions = await db.select().from(sessions);
     const byStatus: Record<string, number> = {
       intake: 0,
       analyzing: 0,
@@ -92,11 +92,10 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
         trackId: sessions.trackId,
         createdAt: sessions.createdAt,
         updatedAt: sessions.updatedAt,
-        messageCount: sql<number>`json_array_length(${sessions.messages})`,
+        messageCount: sql<number>`json_array_length(${sessions.messages}::json)`,
       })
       .from(sessions)
-      .orderBy(desc(sessions.updatedAt))
-      .all();
+      .orderBy(desc(sessions.updatedAt));
 
     return { sessions: rows };
   });
@@ -105,11 +104,11 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>(
     "/sessions/:id/full",
     async (req, reply) => {
-      const row = await db
+      const [row] = await db
         .select()
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!row) return reply.notFound("Session not found");
 
@@ -132,11 +131,11 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
   app.delete<{ Params: { id: string }; Body: { action?: string } }>(
     "/sessions/:id",
     async (req, reply) => {
-      const existing = await db
+      const [existing] = await db
         .select({ id: sessions.id })
         .from(sessions)
         .where(eq(sessions.id, req.params.id))
-        .get();
+        .limit(1);
 
       if (!existing) return reply.notFound("Session not found");
 
@@ -159,10 +158,10 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
 
   // ── POST /ops/reset — wipe ALL sessions (demo reset button) ────
   app.post<{ Body: { action?: string } }>("/reset", async (req) => {
-    const before = await db
-      .select({ count: sql<number>`count(*)` })
+    const [before] = await db
+      .select({ count: sql<number>`count(*)::int` })
       .from(sessions)
-      .get();
+      .limit(1);
 
     await db.delete(sessions);
 
@@ -194,11 +193,11 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
       );
     }
 
-    const existing = await db
+    const [existing] = await db
       .select({ id: sessions.id, status: sessions.status })
       .from(sessions)
       .where(eq(sessions.id, req.params.id))
-      .get();
+      .limit(1);
 
     if (!existing) return reply.notFound("Session not found");
 

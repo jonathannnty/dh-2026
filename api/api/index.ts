@@ -1,17 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { buildApp } from "../src/app.js";
 
+// Vercel serverless entry for the Fastify app. buildApp() does NOT call
+// listen(); we bridge each invocation into Fastify's router via the
+// underlying http.Server. The app is built and readied once per cold start.
 const app = buildApp();
-let readyPromise: Promise<void> | null = null;
+const ready = app.ready();
 
 export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!readyPromise) {
-    readyPromise = app.ready();
-  }
-
-  await readyPromise;
+  await ready;
   app.server.emit("request", req, res);
 }

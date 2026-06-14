@@ -5,7 +5,7 @@ import { TRACK_REGISTRY } from '../services/tracks.js';
 
 // Force demo mode + in-memory DB for tests
 process.env.DEMO_MODE = 'true';
-process.env.DATABASE_URL = ':memory:';
+// Tests require a real Neon DATABASE_URL set in the environment or api/.env
 
 let app: FastifyInstance;
 

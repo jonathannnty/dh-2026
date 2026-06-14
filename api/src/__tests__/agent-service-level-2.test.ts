@@ -18,13 +18,12 @@ import type { FastifyInstance } from 'fastify';
  * - Run with: python agent_service.py
  *
  * Environment:
- * - DEMO_MODE=true (uses in-memory DB for testing)
- * - DATABASE_URL=:memory: (in-memory SQLite)
+ * - DEMO_MODE=true
+ * - DATABASE_URL pointing to a Neon PostgreSQL instance (set in api/.env or environment)
  */
 
-// Force demo mode + in-memory DB for tests
 process.env.DEMO_MODE = 'true';
-process.env.DATABASE_URL = ':memory:';
+// Tests require a real Neon DATABASE_URL set in the environment or api/.env
 
 let app: FastifyInstance;
 

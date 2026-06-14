@@ -1,362 +1,335 @@
-/**
- * Compare — side-by-side session comparison view.
- *
- * Route: /compare?a=<sessionId>&b=<sessionId>
- *
- * Loads both sessions and their recommendations in parallel, then renders
- * a two-column comparison (desktop) / stacked (mobile) layout showing:
- *   - Track badge and session identifier
- *   - Top 3 recommendations with fit scores
- *   - Reasons, concerns, and next steps
- *   - Salary range
- *
- * The comparison is read-only; no mutations are made here.
- */
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { motion, useReducedMotion } from 'framer-motion';
+import { LayoutGrid, Columns, X, Plus } from 'lucide-react';
+import { getTracks } from '@/lib/api';
+import type { SponsorTrack, CareerRecommendation } from '@/schemas/career';
 
-import React, { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  CircleDollarSign,
-  ShieldAlert,
-  Sparkles,
-  GitCompareArrows,
-} from "lucide-react";
-import { getSession, getRecommendations } from "@/lib/api";
-import { useTrack } from "@/hooks/useTrack";
-import { getTrackThemeTokens } from "@/types/uiStateContract";
-import { IconLabel } from "@/components/ui/IconLabel";
-import { UI_COPY } from "@/lib/copy";
-import type { CareerRecommendation, SessionResponse, SponsorTrack } from "@/schemas/career";
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+type ItemType = 'track' | 'career';
 
-const wrap: React.CSSProperties = {
-  maxWidth: 1100,
-  margin: "0 auto",
-  padding: "32px 20px 64px",
-  width: "100%",
-};
-
-// Flat grid — each row is a pair of cells (header|header, rec|rec, rec|rec …)
-// alignItems: stretch (default) makes both cells in a row grow to the same height.
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 20,
-};
-
-// On narrow screens collapse to 1 column — recs stack A then B
-const COLLAPSE_STYLE = `@media (max-width: 680px) { .pf-compare-grid { grid-template-columns: 1fr !important; } }`;
-
-// Shared card shell used by both header and rec cards
-const card: React.CSSProperties = {
-  background: "var(--pf-surface-card-bg)",
-  border: "1px solid var(--pf-surface-card-border)",
-  borderRadius: "var(--pf-radius-md)",
-  overflow: "hidden",
-};
-
-const sectionLabel: React.CSSProperties = {
-  fontSize: "0.7rem",
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  marginBottom: 6,
-};
-
-const pill: React.CSSProperties = {
-  display: "inline-block",
-  padding: "4px 10px",
-  background: "var(--pf-color-bg-subtle)",
-  borderRadius: "var(--pf-radius-pill)",
-  fontSize: "0.78rem",
-  color: "var(--pf-color-text-muted)",
-  marginRight: 6,
-  marginBottom: 6,
-};
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function TrackChip({ track }: { track: SponsorTrack }) {
-  const tokens = getTrackThemeTokens(track.id);
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "3px 10px",
-      borderRadius: "var(--pf-radius-pill)",
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      color: tokens.accent,
-      border: `1px solid ${tokens.borderTint}`,
-      background: tokens.surfaceSoft,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: tokens.accent }} />
-      {track.name}
-    </span>
-  );
+interface CompareItem {
+  key: string;
+  type: ItemType;
+  label: string;
+  data: SponsorTrack | CareerRecommendation;
+  sessionId?: string;
 }
 
-function FitBadge({ score }: { score: number }) {
-  const color =
-    score >= 85
-      ? "var(--pf-color-success-500)"
-      : score >= 70
-        ? "var(--pf-color-warning-500)"
-        : "var(--pf-color-text-muted)";
-  return (
-    <span style={{
-      padding: "2px 8px",
-      borderRadius: "var(--pf-radius-pill)",
-      fontSize: "0.75rem",
-      fontWeight: 700,
-      color,
-      border: `1px solid ${color}`,
-    }}>
-      {UI_COPY.compare.fitScoreLabel(score)}
-    </span>
-  );
+type Layout = 'horizontal' | 'grid';
+
+const MAX_ITEMS = 6;
+
+function encodeItems(items: CompareItem[]): string {
+  return items
+    .map((i) => (i.type === 'track' ? `t:${i.key}` : `c:${i.label}@${i.sessionId}`))
+    .join(',');
 }
 
-interface RecCardProps {
-  rec: CareerRecommendation;
-  index: number;
-  trackColor: string;
-}
-
-// Each rec is its own standalone card so CSS grid can stretch paired cards to equal height.
-function RecCard({ rec, index, trackColor }: RecCardProps) {
+function FitBar({ score }: { score: number }) {
+  const color = score >= 80 ? 'var(--pf-color-success-500)' : score >= 60 ? 'var(--pf-color-brand-500)' : 'var(--pf-color-warning-500)';
   return (
-    <div style={{
-      ...card,
-      padding: "18px 20px",
-      borderLeft: index === 0 ? `3px solid ${trackColor}` : undefined,
-    }}>
-      {index === 0 && (
-        <div style={{
-          fontSize: "0.65rem",
-          fontWeight: 700,
-          color: trackColor,
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
-          marginBottom: 4,
-        }}>
-          {UI_COPY.compare.topMatchLabel}
-        </div>
-      )}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.3 }}>
-          {rec.title}
-        </h3>
-        <FitBadge score={rec.fitScore} />
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 4 }}>
+        <span>Fit score</span><span style={{ color, fontWeight: 600 }}>{score}%</span>
       </div>
+      <div style={{ height: 5, background: 'var(--pf-color-bg-subtle)', borderRadius: 3 }}>
+        <div style={{ width: `${score}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.4s ease' }} />
+      </div>
+    </div>
+  );
+}
 
-      <p style={{ fontSize: "0.82rem", color: "var(--pf-color-text-muted)", lineHeight: 1.6, marginBottom: 12 }}>
-        {rec.summary}
-      </p>
+function TrackCard({ track }: { track: SponsorTrack }) {
+  return (
+    <div>
+      <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 4 }}>Sponsor</p>
+      <p style={{ fontSize: '0.88rem', marginBottom: 12 }}>{track.sponsor}</p>
+      <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 4 }}>Description</p>
+      <p style={{ fontSize: '0.88rem', lineHeight: 1.5, marginBottom: 12 }}>{track.description}</p>
+      {track.tags && track.tags.length > 0 && (
+        <>
+          <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 6 }}>Tags</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {track.tags.map((tag) => (
+              <span key={tag} style={{ padding: '2px 8px', background: 'var(--pf-chip-bg)', border: '1px solid var(--pf-chip-border)', borderRadius: 'var(--pf-radius-pill)', fontSize: '0.72rem' }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
+function CareerCard({ rec }: { rec: CareerRecommendation }) {
+  return (
+    <div>
+      <FitBar score={rec.fitScore} />
+      <div style={{ marginTop: 12 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 4 }}>Summary</p>
+        <p style={{ fontSize: '0.85rem', lineHeight: 1.5, marginBottom: 12 }}>{rec.summary}</p>
+      </div>
       {rec.salaryRange && (
         <div style={{ marginBottom: 12 }}>
-          <IconLabel icon={CircleDollarSign} variant="compact" style={{ fontSize: "0.78rem", color: "var(--pf-color-text-muted)", fontWeight: 600 }}>
-            {UI_COPY.compare.salaryLabel} ${rec.salaryRange.low.toLocaleString()} – ${rec.salaryRange.high.toLocaleString()}
-          </IconLabel>
+          <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 4 }}>Salary range</p>
+          <p style={{ fontSize: '0.88rem', fontWeight: 600 }}>
+            ${rec.salaryRange.low.toLocaleString()} – ${rec.salaryRange.high.toLocaleString()}
+          </p>
         </div>
       )}
-
-      {rec.reasons.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <IconLabel icon={Sparkles} variant="compact" style={{ ...sectionLabel, color: "var(--pf-color-success-500)" }}>
-            {UI_COPY.compare.reasonsHeading}
-          </IconLabel>
-          <div style={{ marginTop: 6 }}>
-            {rec.reasons.slice(0, 3).map((r, i) => (
-              <div key={i} style={pill}>{r}</div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {rec.concerns.length > 0 && (
-        <div>
-          <IconLabel icon={ShieldAlert} variant="compact" style={{ ...sectionLabel, color: "var(--pf-color-warning-500)" }}>
-            {UI_COPY.compare.concernsHeading}
-          </IconLabel>
-          <div style={{ marginTop: 6 }}>
-            {rec.concerns.slice(0, 2).map((c, i) => (
-              <div key={i} style={pill}>{c}</div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Renders only the session header card — recs are rendered as separate grid children.
-interface SessionHeaderProps {
-  session: SessionResponse;
-  recs: CareerRecommendation[];
-  track: SponsorTrack | null;
-}
-
-function SessionHeader({ session, recs, track }: SessionHeaderProps) {
-  const shortId = session.id.slice(0, 8);
-  return (
-    <div style={{ ...card, padding: "16px 20px 14px" }}>
-      {track && <div style={{ marginBottom: 8 }}><TrackChip track={track} /></div>}
-      <div style={{ fontSize: "0.8rem", fontFamily: "var(--pf-font-family-mono)", color: "var(--pf-color-text-muted)" }}>
-        {UI_COPY.compare.sessionLabel(shortId)}
+      <div style={{ marginBottom: 12 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 6 }}>Why it fits</p>
+        <ul style={{ paddingLeft: 16, margin: 0 }}>
+          {rec.reasons.map((r, i) => (
+            <li key={i} style={{ fontSize: '0.82rem', marginBottom: 4, lineHeight: 1.4 }}>{r}</li>
+          ))}
+        </ul>
       </div>
-      <div style={{ fontSize: "0.72rem", color: "var(--pf-color-success-500)", marginTop: 2, fontWeight: 600 }}>
-        {recs.length} recommendation{recs.length !== 1 ? "s" : ""}
+      <div style={{ marginBottom: 12 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 6 }}>Concerns</p>
+        <ul style={{ paddingLeft: 16, margin: 0 }}>
+          {rec.concerns.map((c, i) => (
+            <li key={i} style={{ fontSize: '0.82rem', marginBottom: 4, lineHeight: 1.4 }}>{c}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--pf-color-text-muted)', marginBottom: 6 }}>Next steps</p>
+        <ul style={{ paddingLeft: 16, margin: 0 }}>
+          {rec.nextSteps.map((ns, i) => (
+            <li key={i} style={{ fontSize: '0.82rem', marginBottom: 4, lineHeight: 1.4 }}>{ns}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );
 }
-
-// ─── Loader state ─────────────────────────────────────────────────────────────
-
-interface LoadedSession {
-  session: SessionResponse;
-  recs: CareerRecommendation[];
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Compare() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [items, setItems] = useState<CompareItem[]>([]);
+  const [layout, setLayout] = useState<Layout>('horizontal');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState('');
   const reduceMotion = useReducedMotion();
-  const [params] = useSearchParams();
-  const aId = params.get("a");
-  const bId = params.get("b");
 
-  const [aData, setAData] = useState<LoadedSession | null>(null);
-  const [bData, setBData] = useState<LoadedSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: tracks = [] } = useQuery({ queryKey: ['tracks'], queryFn: getTracks });
 
-  const trackA = useTrack(aData?.session.trackId);
-  const trackB = useTrack(bData?.session.trackId);
+  const { data: sessionsData } = useQuery({
+    queryKey: ['sessions', 'me'],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}/sessions?userId=me`, { credentials: 'include' });
+      if (!res.ok) return { sessions: [] };
+      return res.json();
+    },
+  });
+
+  const completedSessions: { id: string; trackId: string | null }[] =
+    (sessionsData?.sessions ?? []).filter((s: { status: string }) => s.status === 'complete');
+
+  const recsQueries = useQuery({
+    queryKey: ['compare-recs', completedSessions.map((s) => s.id)],
+    queryFn: async () => {
+      const results: Record<string, CareerRecommendation[]> = {};
+      await Promise.all(
+        completedSessions.map(async (s) => {
+          const res = await fetch(`${BASE_URL}/sessions/${s.id}/recommendations`);
+          if (res.ok) {
+            const data = await res.json();
+            results[s.id] = data.recommendations ?? [];
+          }
+        }),
+      );
+      return results;
+    },
+    enabled: completedSessions.length > 0,
+  });
+
+  const allRecs = recsQueries.data ?? {};
 
   useEffect(() => {
-    if (!aId || !bId) {
-      setError("Two session IDs are required. Use ?a=<id>&b=<id>");
-      setLoading(false);
-      return;
+    const param = searchParams.get('items');
+    if (!param || tracks.length === 0) return;
+    const restored: CompareItem[] = [];
+    for (const part of param.split(',')) {
+      if (part.startsWith('t:')) {
+        const id = part.slice(2);
+        const track = tracks.find((t) => t.id === id);
+        if (track) restored.push({ key: `t:${id}`, type: 'track', label: track.name, data: track });
+      } else if (part.startsWith('c:')) {
+        const [label, sessionId] = part.slice(2).split('@');
+        const recs = allRecs[sessionId] ?? [];
+        const rec = recs.find((r) => r.title === label);
+        if (rec) restored.push({ key: `c:${label}@${sessionId}`, type: 'career', label, data: rec, sessionId });
+      }
     }
+    if (restored.length > 0) setItems(restored);
+  }, [tracks, allRecs]);
 
-    async function loadSession(id: string): Promise<LoadedSession> {
-      const [session, recs] = await Promise.all([
-        getSession(id),
-        getRecommendations(id).catch(() => [] as CareerRecommendation[]),
-      ]);
-      return { session, recs };
-    }
-
-    Promise.all([loadSession(aId), loadSession(bId)])
-      .then(([a, b]) => {
-        setAData(a);
-        setBData(b);
-      })
-      .catch(() => setError(UI_COPY.error.compareLoad))
-      .finally(() => setLoading(false));
-  }, [aId, bId]);
-
-  // ── Error ──
-  if (error) {
-    return (
-      <div style={{ ...wrap, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, minHeight: 300, justifyContent: "center", textAlign: "center" }}>
-        <p style={{ fontWeight: 600 }}>Could not load comparison</p>
-        <p style={{ color: "var(--pf-color-text-muted)", maxWidth: 360, fontSize: "0.9rem" }}>{error}</p>
-        <Link to="/dashboard" style={{ color: "var(--pf-color-brand-400)", fontSize: "0.9rem" }}>
-          {UI_COPY.compare.backToDashboard}
-        </Link>
-      </div>
-    );
+  function addItem(item: CompareItem) {
+    if (items.length >= MAX_ITEMS) return;
+    if (items.find((i) => i.key === item.key)) return;
+    const next = [...items, item];
+    setItems(next);
+    setSearchParams({ items: encodeItems(next) }, { replace: true });
+    setPickerOpen(false);
+    setPickerQuery('');
   }
 
-  // ── Loading ──
-  if (loading) {
-    return (
-      <div style={{ ...wrap, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, minHeight: 300, justifyContent: "center" }}>
-        <div style={{
-          width: 36, height: 36,
-          border: "3px solid var(--pf-color-border-subtle)",
-          borderTopColor: "var(--pf-color-brand-500)",
-          borderRadius: "50%",
-          animation: "spin 0.8s linear infinite",
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        <span style={{ color: "var(--pf-color-text-muted)", fontSize: "0.9rem" }}>Loading sessions…</span>
-      </div>
-    );
+  function removeItem(key: string) {
+    const next = items.filter((i) => i.key !== key);
+    setItems(next);
+    setSearchParams(next.length ? { items: encodeItems(next) } : {}, { replace: true });
   }
 
-  // ── Full comparison ──
+  const pickerOptions: CompareItem[] = [
+    ...tracks
+      .filter((t) => !items.find((i) => i.key === `t:${t.id}`))
+      .filter((t) => !pickerQuery || t.name.toLowerCase().includes(pickerQuery.toLowerCase()))
+      .map((t): CompareItem => ({ key: `t:${t.id}`, type: 'track', label: t.name, data: t })),
+    ...Object.entries(allRecs).flatMap(([sid, recs]) =>
+      recs
+        .filter((r) => !items.find((i) => i.key === `c:${r.title}@${sid}`))
+        .filter((r) => !pickerQuery || r.title.toLowerCase().includes(pickerQuery.toLowerCase()))
+        .map((r): CompareItem => ({ key: `c:${r.title}@${sid}`, type: 'career', label: r.title, data: r, sessionId: sid })),
+    ),
+  ];
+
+  const colWidth = layout === 'horizontal' ? `${Math.max(240, Math.floor(860 / items.length))}px` : undefined;
+
   return (
     <motion.div
-      style={wrap}
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={reduceMotion ? undefined : { duration: 0.25, ease: "easeOut" }}
+      transition={reduceMotion ? undefined : { duration: 0.28, ease: 'easeOut' }}
+      style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 20px' }}
     >
-      <style>{COLLAPSE_STYLE}</style>
-
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <Link to="/dashboard" style={{ fontSize: "0.82rem", color: "var(--pf-color-text-muted)", textDecoration: "none" }}>
-          {UI_COPY.compare.backToDashboard}
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, marginBottom: 6 }}>
-          <IconLabel icon={GitCompareArrows} variant="section" style={{ fontWeight: 700, fontSize: "1.5rem" }}>
-            {UI_COPY.compare.heading}
-          </IconLabel>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Compare</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => setLayout('horizontal')}
+            title="Horizontal layout"
+            style={{ padding: 8, background: layout === 'horizontal' ? 'var(--pf-chip-selected-bg)' : 'none', border: `1px solid ${layout === 'horizontal' ? 'var(--pf-color-brand-500)' : 'var(--pf-surface-card-border)'}`, borderRadius: 'var(--pf-radius-sm)', cursor: 'pointer', color: layout === 'horizontal' ? 'var(--pf-color-brand-400)' : 'var(--pf-color-text-muted)', display: 'flex', alignItems: 'center' }}
+          >
+            <Columns size={15} />
+          </button>
+          <button
+            onClick={() => setLayout('grid')}
+            title="Grid layout"
+            style={{ padding: 8, background: layout === 'grid' ? 'var(--pf-chip-selected-bg)' : 'none', border: `1px solid ${layout === 'grid' ? 'var(--pf-color-brand-500)' : 'var(--pf-surface-card-border)'}`, borderRadius: 'var(--pf-radius-sm)', cursor: 'pointer', color: layout === 'grid' ? 'var(--pf-color-brand-400)' : 'var(--pf-color-text-muted)', display: 'flex', alignItems: 'center' }}
+          >
+            <LayoutGrid size={15} />
+          </button>
+          {items.length < MAX_ITEMS && (
+            <button
+              onClick={() => setPickerOpen((p) => !p)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--pf-btn-primary-bg)', color: 'var(--pf-btn-primary-text)', border: 'none', borderRadius: 'var(--pf-radius-sm)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              <Plus size={14} /> Add item
+            </button>
+          )}
         </div>
-        <p style={{ color: "var(--pf-color-text-muted)", fontSize: "0.875rem", maxWidth: 560 }}>
-          {UI_COPY.compare.subhead}
-        </p>
       </div>
 
-      {/* Flat grid: header row, then one row per rec pair — CSS stretch keeps pairs aligned */}
-      {aData && bData && (() => {
-        const tokensA = getTrackThemeTokens(trackA?.id ?? "general");
-        const tokensB = getTrackThemeTokens(trackB?.id ?? "general");
-        const rowCount = Math.max(aData.recs.length, bData.recs.length);
-
-        return (
-          <div style={grid} className="pf-compare-grid">
-            {/* Row 0: session headers */}
-            <SessionHeader session={aData.session} recs={aData.recs} track={trackA ?? null} />
-            <SessionHeader session={bData.session} recs={bData.recs} track={trackB ?? null} />
-
-            {/* Rows 1+: paired rec cards — same grid row = same height */}
-            {Array.from({ length: rowCount }, (_, i) => (
-              <React.Fragment key={i}>
-                {aData.recs[i]
-                  ? <RecCard rec={aData.recs[i]} index={i} trackColor={tokensA.accent} />
-                  : <div />}
-                {bData.recs[i]
-                  ? <RecCard rec={bData.recs[i]} index={i} trackColor={tokensB.accent} />
-                  : <div />}
-              </React.Fragment>
+      {/* Picker dropdown */}
+      {pickerOpen && (
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <div style={{ background: 'var(--pf-surface-card-bg)', border: '1px solid var(--pf-surface-card-border)', borderRadius: 'var(--pf-radius-md)', padding: 16, maxHeight: 320, overflowY: 'auto' }}>
+            <input
+              autoFocus
+              placeholder="Search tracks or careers…"
+              value={pickerQuery}
+              onChange={(e) => setPickerQuery(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', background: 'var(--pf-color-bg-subtle)', border: '1px solid var(--pf-surface-card-border)', borderRadius: 'var(--pf-radius-sm)', color: 'var(--pf-color-text-primary)', fontSize: '0.88rem', marginBottom: 10, boxSizing: 'border-box' }}
+            />
+            {pickerOptions.length === 0 && (
+              <p style={{ color: 'var(--pf-color-text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '12px 0' }}>No options available</p>
+            )}
+            {pickerOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => addItem(opt)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 'var(--pf-radius-sm)', cursor: 'pointer', textAlign: 'left', color: 'var(--pf-color-text-primary)', fontSize: '0.88rem' }}
+              >
+                <span style={{ fontSize: '0.68rem', padding: '1px 7px', border: '1px solid var(--pf-surface-card-border)', borderRadius: 'var(--pf-radius-pill)', color: 'var(--pf-color-text-muted)', flexShrink: 0 }}>
+                  {opt.type === 'track' ? 'Track' : 'Career'}
+                </span>
+                {opt.label}
+              </button>
             ))}
-
-            {/* No-recs fallback — only shown when a session has zero recs */}
-            {aData.recs.length === 0 && (
-              <div style={{ ...card, padding: "32px 20px", color: "var(--pf-color-text-muted)", fontSize: "0.85rem", textAlign: "center" }}>
-                {UI_COPY.compare.noRecs}
-              </div>
-            )}
-            {bData.recs.length === 0 && (
-              <div style={{ ...card, padding: "32px 20px", color: "var(--pf-color-text-muted)", fontSize: "0.85rem", textAlign: "center" }}>
-                {UI_COPY.compare.noRecs}
-              </div>
-            )}
           </div>
-        );
-      })()}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {items.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px dashed var(--pf-surface-card-border)', borderRadius: 'var(--pf-radius-md)', color: 'var(--pf-color-text-muted)' }}>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>Nothing to compare yet</p>
+          <p style={{ fontSize: '0.88rem', marginBottom: 20 }}>Add 2 or more tracks or career recommendations to compare them.</p>
+          <button
+            onClick={() => setPickerOpen(true)}
+            style={{ padding: '9px 22px', background: 'var(--pf-btn-primary-bg)', color: 'var(--pf-btn-primary-text)', border: 'none', borderRadius: 'var(--pf-radius-sm)', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Add item
+          </button>
+        </div>
+      )}
+
+      {/* Comparison view */}
+      {items.length > 0 && (
+        <div
+          style={
+            layout === 'horizontal'
+              ? { display: 'flex', gap: 14, overflowX: 'auto', alignItems: 'flex-start', paddingBottom: 8 }
+              : { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }
+          }
+        >
+          {items.map((item) => (
+            <motion.div
+              key={item.key}
+              layout
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
+              animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{
+                flexShrink: 0,
+                width: layout === 'horizontal' ? colWidth : undefined,
+                background: 'var(--pf-surface-card-bg)',
+                border: '1px solid var(--pf-surface-card-border)',
+                borderRadius: 'var(--pf-radius-md)',
+                padding: '20px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div>
+                  <span style={{ fontSize: '0.68rem', padding: '1px 7px', border: '1px solid var(--pf-surface-card-border)', borderRadius: 'var(--pf-radius-pill)', color: 'var(--pf-color-text-muted)', display: 'inline-block', marginBottom: 4 }}>
+                    {item.type === 'track' ? 'Track' : 'Career'}
+                  </span>
+                  <p style={{ fontWeight: 700, fontSize: '0.95rem', lineHeight: 1.3 }}>{item.label}</p>
+                </div>
+                <button
+                  onClick={() => removeItem(item.key)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pf-color-text-muted)', padding: 4, flexShrink: 0 }}
+                  aria-label={`Remove ${item.label}`}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {item.type === 'track'
+                ? <TrackCard track={item.data as SponsorTrack} />
+                : <CareerCard rec={item.data as CareerRecommendation} />
+              }
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

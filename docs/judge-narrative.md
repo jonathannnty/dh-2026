@@ -26,7 +26,7 @@ A chat-based interview that progressively builds a structured career profile acr
 Each answer is parsed in real time into structured data — the profile builds visibly as you talk.
 
 ### 2. Multi-Agent Analysis
-The completed profile is sent to a multi-agent backend (Fetch.ai uAgents) where specialized agents evaluate career fit across different angles: skill matching, values alignment, market demand, salary viability, and burnout risk. Progress streams back via SSE.
+The completed profile is sent to a Python agent service (DeepSeek API via FastAPI) where career fit is evaluated across multiple angles: skill matching, values alignment, market demand, salary viability, and burnout risk. Progress streams back via SSE.
 
 ### 3. Scored Recommendations
 Results are presented as career cards with:
@@ -42,14 +42,14 @@ Results are presented as career cards with:
 
 ```
 React SPA  ←→  Fastify API Gateway  ←→  Python Agent Service
-   (Vite)        (TypeScript)           (Fetch.ai uAgents)
+   (Vite)        (TypeScript)           (DeepSeek API via FastAPI)
                      ↕
                 SQLite (Drizzle ORM)
 ```
 
 - **Frontend**: React 19 + TypeScript + TanStack Query + React Router + Zod validation
 - **API**: Fastify 5 + TypeScript + Drizzle ORM + SQLite + SSE streaming
-- **Agent service**: Python + Fetch.ai uAgents framework (multi-agent orchestration)
+- **Agent service**: Python + FastAPI + DeepSeek API (career recommendation generation)
 - **Contract**: Zod schemas shared between frontend and API — every request and response is validated at both ends
 
 ---

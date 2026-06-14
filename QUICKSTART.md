@@ -20,8 +20,13 @@ cd DH-2026
 # 2. Install dependencies
 npm install
 
-# 3. Setup environment (copy from template)
+# 3. Setup environment
 cp api/.env.example api/.env
+# Then open api/.env and set DATABASE_URL to your Neon connection string
+# Get one free at https://console.neon.tech
+
+# 4. Push schema to Neon (once)
+cd api && npx drizzle-kit push && cd ..
 ```
 
 ### Run Demo
@@ -62,19 +67,34 @@ If it fails, see **Troubleshooting** below.
 
 ## Environment Configuration
 
-### Local Development (Default)
+### Local Development
 
-The `.env` file is already configured for local dev with fallback enabled:
+Required fields in `api/.env`:
 
 ```bash
 PORT=3001
 NODE_ENV=development
-DATABASE_URL=./dev.db
-DEMO_MODE=true
+DEMO_MODE=false
+DATABASE_URL=postgresql://<user>:<pass>@<host>/<db>?sslmode=require
+APP_URL=http://localhost:5173
 AGENT_SERVICE_URL=http://localhost:8000
 ```
 
-**No changes needed.** The setup already works with deterministic fallback.
+Optional fields (leave blank to skip the feature):
+
+```bash
+# DeepSeek — run agent_service.py with this key for live AI analysis
+DEEPSEEK_API_KEY=
+
+# OAuth — enable Google/GitHub login
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+JWT_SECRET=   # 32+ char random hex
+```
+
+**DATABASE_URL is required.** Get a free Neon project at https://console.neon.tech and paste the connection string.
 
 ### Production Deployment
 
@@ -125,10 +145,7 @@ Use this checklist every time before a live demo:
 pkill -f "node" || true
 pkill -f "python" || true
 
-# 2. Reset database (optional, for fresh start)
-rm api/dev.db
-
-# 3. Verify setup
+# 2. Verify setup
 npm run smoke       # Must show ✅ PASS
 
 # 4. Start services

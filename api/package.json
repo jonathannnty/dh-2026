@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsup src/server.ts --format esm --dts",
     "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc -p tsconfig.check.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -17,15 +17,19 @@
   "dependencies": {
     "@fastify/cors": "^11.0.0",
     "@fastify/sensible": "^6.0.0",
-    "better-sqlite3": "^11.7.0",
+    "@neondatabase/serverless": "^0.10.4",
+    "@types/ws": "^8.18.1",
+    "axios": "^1.17.0",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
     "fastify-plugin": "^5.1.0",
+    "jose": "^6.2.3",
     "pdfkit": "^0.18.0",
+    "ws": "^8.21.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.10.0",
     "@types/pdfkit": "^0.17.5",
     "drizzle-kit": "^0.31.10",

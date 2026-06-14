@@ -16,7 +16,7 @@ import type { CareerProfile } from "../schemas/career.js";
 
 // Force demo mode + in-memory DB for tests
 process.env.DEMO_MODE = "true";
-process.env.DATABASE_URL = ":memory:";
+// Tests require a real Neon DATABASE_URL set in the environment or api/.env
 
 let app: FastifyInstance;
 
@@ -563,7 +563,7 @@ describe("Ops routes — accessible without DEMO_MODE, include audit metadata", 
 
   beforeAll(async () => {
     process.env.DEMO_MODE = "false";
-    process.env.DATABASE_URL = ":memory:";
+    // Tests require a real Neon DATABASE_URL set in the environment or api/.env
     opsApp = buildApp();
     await opsApp.ready();
   });

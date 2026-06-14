@@ -46,7 +46,7 @@ const indicatorStyle: React.CSSProperties = {
   inset: 0,
   borderRadius: "var(--pf-radius-sm)",
   background:
-    "linear-gradient(135deg, rgba(99,102,241,0.16), rgba(129,140,248,0.1))",
+    "rgba(99,102,241,0.12)",
   border:
     "1px solid color-mix(in srgb, var(--pf-color-brand-400) 28%, transparent)",
   zIndex: 0,

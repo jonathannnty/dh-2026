@@ -3,6 +3,9 @@ import sensible from "@fastify/sensible";
 import { loadEnv } from "./env.js";
 import { registerCors } from "./plugins/cors.js";
 import { registerObservability } from "./plugins/observability.js";
+import authPlugin from "./plugins/auth-plugin.js";
+import { authRoutes } from "./routes/auth.js";
+import { savedCareersRoutes } from "./routes/saved-careers.js";
 import { healthRoutes } from "./routes/health.js";
 import { readyRoutes } from "./routes/ready.js";
 import { sessionRoutes } from "./routes/sessions.js";
@@ -23,6 +26,9 @@ export function buildApp() {
   app.register(registerObservability);
   app.register(sensible);
   app.register(registerCors);
+  app.register(authPlugin);
+  app.register(authRoutes);
+  app.register(savedCareersRoutes);
 
   // Core routes
   app.register(healthRoutes);
